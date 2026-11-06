@@ -107,3 +107,15 @@ InitTestScene*.unity*
 
 # Auto-generated cache in Assets folder
 /[Aa]ssets/[Ss]ceneDependencyCache*
+
+# Claude Code ↔ Unity connection: absolute paths for one machine, not for students
+.mcp.json
+
+# MediaPipe package (~277 MB, over GitHub's 100 MB limit): setup.ps1 downloads it
+/[Pp]ackages/*.tgz
+
+# Microsoft's Kinect v2 Unity plugin: its licence doesn't allow sharing it, so setup.ps1 downloads it
+/[Aa]ssets/[Pp]lugins/
+/[Aa]ssets/[Pp]lugins.meta
+/[Aa]ssets/[Ss]tandard [Aa]ssets/
+/[Aa]ssets/[Ss]tandard [Aa]ssets.meta
