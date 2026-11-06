@@ -15,7 +15,7 @@ Context we're designing for: museum installation, well-lit space, **families wit
 | Webcam tracking | **MediaPipe Unity Plugin v0.16.3** (MIT licence) | One library covers hands, body pose (multi-person) and person cut-out. It runs on Windows on the CPU only; the plugin calls Windows support "experimental". Fallback: Unity's Inference Engine with the Blaze hand/pose models, which needs much more code. |
 | "Depth layers" | **Webcam: person cut-out** placed between a background and foreground layer. **Kinect: real distance**, so stepping closer reveals content. | The cut-out handles a whole family in one mask and holds up well in good light. Webcam depth estimation (MiDaS) is slow and rough, and would add a second library. Kinect measures real distance, so it can do "near/far" layers properly. |
 | Project layout | **Two Unity projects in two repos**: `umu-demo` for the Windows demos (webcam + Kinect), and `umu-demo-ar` for Android AR | You said "a demo project", so this departs from that. Splitting means the AR team doesn't download 290 MB of MediaPipe or install the Kinect SDK, nobody has to switch build platform (which re-imports everything), and the Android build doesn't pull in Windows-only plugins. Separate repos keep git simple. |
-| Getting MediaPipe into the project | A **`setup.ps1` script** downloads the 290 MB package into `Packages/`, with a manual download link in the README as backup | Too big for GitHub (100 MB file limit). Git LFS would run out of free bandwidth with a whole class cloning. |
+| Getting MediaPipe and the Kinect plugin into the project | A **`setup.ps1` script** downloads the 277 MB MediaPipe package into `Packages/` and unpacks Microsoft's Kinect plugin into `Assets/`, with manual steps in the README as backup | MediaPipe is too big for GitHub (100 MB file limit), and Git LFS would run out of free bandwidth with a whole class cloning. The Kinect plugin's licence doesn't allow sharing it. |
 | Claude ↔ Unity connection | **Unity CLI** (free, official) with its MCP server, plus the `com.unity.pipeline` package in each project | Unity deprecated the MCP server in its AI Assistant package and replaced it with this. The pipeline package is only for building the demos: **remove it from both projects before handing them to students.** |
 | MediaPipe calling style | **Synchronous "video" mode**, called from `Update()` | No threads or callbacks for students to untangle. Costs some frame rate, which is fine for a demo. |
 | Rendering | Universal Render Pipeline (URP), placeholder shapes and images we make ourselves | No art licensing questions, and students swap in their own content. |
@@ -98,7 +98,14 @@ Results:
   - The template's app ID was replaced with `com.umudemo.ardemos`.
   - **Still to do:** install on a device and check the camera image, the `SessionTracking` state and planes appearing.
 
-**Phase 1: Skeleton.** Both Unity projects, folder structure, `.gitignore` adjusted (the current one only covers a project at the repo root), `setup.ps1`, top-level README.
+**Phase 1: Skeleton.** Both Unity projects, folder structure, `.gitignore` adjusted, `setup.ps1`, top-level README.
+
+Results (2026-11-06):
+- **`setup.ps1` works on a fresh clone.** It downloads MediaPipe from GitHub and the Kinect zip from Microsoft, checks both against a SHA-256 fingerprint, and copies only the Kinect files we use (the C# wrapper in `Standard Assets` and the 64-bit DLL) out of the `.unitypackage`. That package is old enough to have no `.meta` files inside, so the script writes the DLL's `.meta` itself, with Editor and 64-bit Windows switched on. Tested on a fresh clone: 26 s of downloads here, a second run skips everything, and `git status` stays clean. Unity then took 3 minutes to open the clone, compiled with no errors, `KinectSensor.GetDefault()` loaded the DLL in the editor, and both check scripts compiled.
+- **READMEs:** top-level READMEs in both repos, linking to each other. Hardware READMEs at `Assets/Demos/Webcam/README.md` and `Assets/Demos/Kinect/README.md` (umu-demo) and `Assets/Demos/README.md` (umu-demo-ar). Every section except "How the code works" and "Ideas" is filled in; those two get written with the demos. The top-level READMEs carry a "work in progress" note: remove it in Phase 5.
+- **Folders:** `Assets/Demos/Webcam/` and `Assets/Demos/Kinect/` exist (each holds its README). The per-demo subfolders get created with their scenes, because Unity deletes empty folders' `.meta` files and git can't hold empty folders anyway.
+- The AR README's common problems come from AR Foundation's documentation, not from our own device test, which is still to do.
+- **XR Simulation is on in umu-demo-ar** (XR Plug-in Management, Windows tab; it only affects Play mode, not the Android app). Pressing Play now runs the AR scenes in a simulated room instead of needing a phone build. Tested with `ARCheck`: the session reaches `SessionTracking` straight away, and after the camera panned around for 12 seconds it had found 3 surfaces (floor and two walls), drawn with our plane prefab. Surfaces only appear while the camera moves, just like on a phone. The default room also holds a simulated image marker, so both AR demos can be developed in the editor. The AR README explains the controls (right mouse + WASD/QE) and that a real device test is still needed, because the simulation doesn't suffer from glare, plain surfaces or dim light. For Phase 4: make sure `AR_PlaceObject`'s tap also works as a mouse click in the editor, and use the simulated room's marker image (or our own) to test `AR_ImageMarker`.
 
 **Phase 2: Webcam demos** (5 scenes + README)
 
@@ -115,8 +122,9 @@ Results:
 ```
 umu-demo/                   repo 1, Unity project (Windows): webcam + Kinect
   README.md                 start here
-  setup.ps1                 downloads the MediaPipe package
+  setup.ps1                 downloads the MediaPipe package and the Kinect plugin
   Packages/                 MediaPipe .tgz lands here (git-ignored)
+  Assets/Plugins/, Assets/Standard Assets/   Kinect plugin lands here (git-ignored)
   Assets/Demos/
     Webcam/   README.md, Hands/, HandsMulti/, Body/, BodyMulti/, Layers/
     Kinect/   README.md, Body/, DepthLayers/
@@ -124,6 +132,7 @@ umu-demo/                   repo 1, Unity project (Windows): webcam + Kinect
 umu-demo-ar/                repo 2, Unity project (Android)
   README.md                 start here
   Assets/Demos/
+    README.md               device setup, building, problems, museum tips
     ImageMarker/, PlaceObject/
   Markers/marker.pdf
 ```
